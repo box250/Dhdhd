@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bear Photo</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: white; text-align: center; padding: 20px; margin: 0; }
+        .box { background: #1e1e1e; padding: 30px; border-radius: 25px; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.6); border: 1px solid #333; }
+        h1 { color: #00bcd4; font-size: 28px; margin-bottom: 25px; }
+        button { width: 100%; padding: 16px; margin: 12px 0; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 17px; transition: 0.2s; }
+        .view { background: #ff9800; color: white; }
+        .add { background: #00bcd4; color: white; }
+        button:active { transform: scale(0.98); opacity: 0.9; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; margin-top: 30px; padding-bottom: 50px; }
+        img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 12px; border: 1px solid #444; background: #222; }
+        #loader { display: none; color: #ffeb3b; margin: 15px; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        <h1>🐻 Bear Cloud</h1>
+        <button class="view" onclick="render()">👁 Посмотреть альбом</button>
+        <button class="add" onclick="ask()">➕ Добавить фото</button>
+        <div id="loader">🚀 Загрузка в облако...</div>
+        <input type="file" id="file" style="display:none" accept="image/*" onchange="upload(this)">
+    </div>
+
+    <div id="gallery" class="grid"></div>
+
+    <script>
+        // Твой личный ключ ImgBB
+        const API_KEY = "fdea7279cbfcfbdd490e97027b29ee98"; 
+
+        // Загружаем список ссылок из памяти браузера
+        let photos = JSON.parse(localStorage.getItem('bear_gallery') || '[]');
+
+        function ask() {
+            if (prompt("Пароль?") === "3664") {
+                document.getElementById('file').click();
+            } else {
+                alert("Неверный пароль!");
+            }
+        }
+
+        async function upload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block';
+            
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Сохраняем прямую ссылку на картинку
+                    photos.unshift(data.data.url); // Новые фото будут в начале
+                    localStorage.setItem('bear_gallery', JSON.stringify(photos));
+                    render();
+                } else {
+                    alert("Ошибка загрузки!");
+                }
+            } catch (e) {
+                alert("Проблема с интернетом или ключом");
+            } finally {
+                loader.style.display = 'none';
+                input.value = ""; // Очистить выбор файла
+            }
+        }
+
+        function render() {
+            const g = document.getElementById('gallery');
+            if (photos.length === 0) {
+                g.innerHTML = "<p style='grid-column: 1/-1; opacity: 0.5;'>Альбом пока пуст</p>";
+                return;
+            }
+            g.innerHTML = photos.map(url => `<img src="${url}" loading="lazy">`).join('');
+        }
+
+        // Показываем фото сразу при загрузке страницы
+        render();
+    </script>
+</body>
+</html>
